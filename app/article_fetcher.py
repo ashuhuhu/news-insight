@@ -15,9 +15,15 @@ MIN_TEXT_CHARS = 500
 def require_public_host(request: httpx.Request) -> None:
     # The URL comes from the browser, so refuse anything that resolves to a private or internal
     # address (SSRF). httpx runs this hook for every redirect hop too.
-    for info in socket.getaddrinfo(request.url.host, None):
-        if not ipaddress.ip_address(info[4][0]).is_global:
-            raise ValueError(f"refusing non-public host {request.url.host}")
+    host = request.url.host
+    try:
+        # Check IP literals as written: on NAT64 networks the lookup rewrites e.g. 10.0.0.5
+        # into an IPv6 address that looks public.
+        addresses = [ipaddress.ip_address(host)]
+    except ValueError:
+        addresses = [ipaddress.ip_address(info[4][0]) for info in socket.getaddrinfo(host, None)]
+    if not all(address.is_global for address in addresses):
+        raise ValueError(f"refusing non-public host {host}")
 
 
 def make_client(transport: httpx.BaseTransport | None = None) -> httpx.Client:

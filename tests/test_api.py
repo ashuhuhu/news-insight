@@ -105,9 +105,10 @@ def test_same_article_twice_is_not_analyzed_again(api):
         {"url": "https://news.example.com/a"},
         {"url": "https://news.example.com/a", "title": "   "},
         {"url": "javascript:alert(1)", "title": "Bad link"},
+        {"url": "https://news.example.com/a", "title": "Huge", "content": "x" * 5001},
         ["not", "an", "object"],
     ],
-    ids=["missing-title", "blank-title", "javascript-url", "not-an-object"],
+    ids=["missing-title", "blank-title", "javascript-url", "huge-content", "not-an-object"],
 )
 def test_create_rejects_invalid_articles(api, payload):
     response = api.client.post("/api/analyses", json=payload)
@@ -213,6 +214,18 @@ def test_unknown_id_is_404(api, method, path):
     response = getattr(api.client, method)(path)
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "not_found"
+
+
+def test_routing_errors_use_error_envelope(api):
+    unknown = api.client.get("/api/nope")
+    wrong_method = api.client.put("/api/analyses/1")
+    assert (unknown.status_code, unknown.json()["error"]["code"]) == (404, "not_found")
+    assert (wrong_method.status_code, wrong_method.json()["error"]["code"]) == (405, "method_not_allowed")
+
+
+def test_serves_frontend(api):
+    assert "/static/app.js" in api.client.get("/").text
+    assert api.client.get("/static/app.js").status_code == 200
 
 
 def test_non_integer_id_is_422(api):

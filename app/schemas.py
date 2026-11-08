@@ -27,9 +27,10 @@ class Article(BaseModel):
     # which would break matching against URLs already stored in the database.
     url: str = Field(max_length=2000)
     title: str = Field(min_length=1, max_length=500)
-    description: str | None = None
-    content: str | None = None
-    source_name: str | None = None
+    # GNews sends a few hundred characters; the limits stop clients posting huge text to store and prompt with.
+    description: str | None = Field(default=None, max_length=5000)
+    content: str | None = Field(default=None, max_length=5000)
+    source_name: str | None = Field(default=None, max_length=200)
     image_url: str | None = None
     published_at: datetime | None = None
 

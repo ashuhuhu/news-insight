@@ -58,7 +58,7 @@ def analyzer_with(parsed=None, error=None):
 
 
 def test_analyze_sends_structured_request_and_returns_result():
-    expected = make_result(sentiment="positive", sentiment_score=-0.4)  # mismatch is accepted as-is
+    expected = make_result()
     analyzer, client = analyzer_with(parsed=expected)
 
     assert analyzer.analyze(make_article(), "Full text") == expected
@@ -69,16 +69,28 @@ def test_analyze_sends_structured_request_and_returns_result():
     assert "Full text" in kwargs["input"]
 
 
-@pytest.mark.parametrize("score", [-1.0, 1.0])
-def test_accepts_boundary_scores(score):
-    analyzer, _ = analyzer_with(parsed=make_result(sentiment_score=score))
+@pytest.mark.parametrize(
+    "sentiment, score",
+    [("positive", 1.0), ("positive", 0.0), ("neutral", -0.3), ("neutral", 0.3), ("negative", -1.0), ("negative", 0.0)],
+)
+def test_accepts_scores_at_the_edges_of_each_label(sentiment, score):
+    analyzer, _ = analyzer_with(parsed=make_result(sentiment=sentiment, sentiment_score=score))
     assert analyzer.analyze(make_article(), None).sentiment_score == score
 
 
 @pytest.mark.parametrize(
     "parsed",
-    [None, make_result(summary="   "), make_result(sentiment_score=1.5), make_result(sentiment_score=-1.2)],
-    ids=["refusal", "blank-summary", "score-too-high", "score-too-low"],
+    [
+        None,
+        make_result(summary="   "),
+        make_result(sentiment="positive", sentiment_score=1.5),
+        make_result(sentiment="negative", sentiment_score=-1.2),
+        make_result(sentiment="positive", sentiment_score=-0.4),
+        make_result(sentiment="negative", sentiment_score=0.8),
+        make_result(sentiment="neutral", sentiment_score=0.95),
+    ],
+    ids=["refusal", "blank-summary", "score-too-high", "score-too-low",
+         "positive-with-negative-score", "negative-with-positive-score", "neutral-with-strong-score"],
 )
 def test_rejects_unusable_output(parsed):
     analyzer, _ = analyzer_with(parsed=parsed)

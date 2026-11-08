@@ -9,10 +9,11 @@ from pathlib import Path
 import httpx
 from fastapi import Depends, FastAPI, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from openai import OpenAI
 from sqlalchemy import func, select, text
+from starlette.exceptions import HTTPException
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -86,6 +87,13 @@ async def handle_validation_error(request: Request, exc: RequestValidationError)
     first = exc.errors()[0]
     field = ".".join(str(part) for part in first["loc"][1:]) or "request"
     return error_response(422, "invalid_request", f"{field}: {first['msg']}")
+
+
+@app.exception_handler(HTTPException)
+async def handle_http_error(request: Request, exc: HTTPException):
+    # Unknown paths and wrong methods come from the router, not our code; keep the same envelope.
+    code = {404: "not_found", 405: "method_not_allowed"}.get(exc.status_code, "http_error")
+    return error_response(exc.status_code, code, exc.detail, headers=exc.headers)
 
 
 @app.exception_handler(Exception)
@@ -216,5 +224,12 @@ def delete_analysis(analysis_id: int, session: Session = Depends(get_session)):
     return Response(status_code=204)
 
 
-# Mounted last so the /api routes above take priority.
-app.mount("/", StaticFiles(directory=Path(__file__).parent / "static", html=True), name="static")
+STATIC_DIR = Path(__file__).parent / "static"
+
+
+@app.get("/", include_in_schema=False)
+def index():
+    return FileResponse(STATIC_DIR / "index.html")
+
+
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

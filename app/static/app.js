@@ -219,7 +219,11 @@ function analysisBlock(analysis, extraActions = []) {
     el(
       "div",
       { class: "analysis-head" },
-      el("span", { class: `badge ${analysis.sentiment}`, text: `${analysis.sentiment} ${formatScore(analysis.sentiment_score)}` }),
+      el("span", {
+        class: `badge ${analysis.sentiment}`,
+        title: "Sentiment score from −1 (very negative) to +1 (very positive)",
+        text: `${analysis.sentiment} ${formatScore(analysis.sentiment_score)}`,
+      }),
       el("span", { text: analysis.text_source === "full" ? "Based on full article" : "Based on preview only" }),
       el("span", { text: `Analyzed ${timeAgo(analysis.analyzed_at)}` }),
     ),

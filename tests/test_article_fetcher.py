@@ -64,6 +64,13 @@ def test_blocks_private_addresses(monkeypatch, ip):
     assert requests == []
 
 
+def test_blocks_private_ip_literal_even_if_lookup_looks_public(monkeypatch):
+    # NAT64 networks rewrite 10.0.0.5 into an IPv6 address that counts as public.
+    monkeypatch.setattr(article_fetcher.socket, "getaddrinfo", fake_dns(default_ip="2a0c:5bc0:40:2fff::a00:5"))
+    with pytest.raises(ValueError):
+        article_fetcher.require_public_host(httpx.Request("GET", "http://10.0.0.5/"))
+
+
 def test_blocks_redirect_to_private_address(monkeypatch):
     monkeypatch.setattr(article_fetcher.socket, "getaddrinfo", fake_dns(**{"internal.example.com": "10.0.0.1"}))
 
