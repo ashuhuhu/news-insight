@@ -120,10 +120,11 @@ class FakeOpenAI:
         self.responses = self
         self.prompts: list[str] = []
         self.error: Exception | None = None
+        self.fail_when: str | None = None  # fail only for prompts containing this text
 
     def parse(self, *, model, instructions, input, text_format):
         self.prompts.append(input)
-        if self.error:
+        if self.error and (self.fail_when is None or self.fail_when in input):
             raise self.error
         source = "full article" if "Paragraph 3" in input else "preview"
         negative = "crisis" in input.lower()

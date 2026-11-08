@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Literal
 from urllib.parse import urlparse
 
@@ -11,6 +11,13 @@ TextSource = Literal["full", "preview"]
 def is_http_url(value: str) -> bool:
     parsed = urlparse(value)
     return parsed.scheme in ("http", "https") and bool(parsed.netloc)
+
+
+def as_utc(value):
+    # Every timestamp in the app is UTC, but SQLite drops the time zone when storing it.
+    if isinstance(value, datetime) and value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value
 
 
 class Article(BaseModel):
@@ -44,10 +51,10 @@ class Article(BaseModel):
     def drop_invalid_date(cls, value):
         if isinstance(value, str):
             try:
-                return datetime.fromisoformat(value)
+                value = datetime.fromisoformat(value)
             except ValueError:
                 return None
-        return value
+        return as_utc(value)
 
 
 class AnalysisResult(BaseModel):
@@ -71,6 +78,11 @@ class AnalysisOut(Article):
     model: str
     created_at: datetime
     analyzed_at: datetime
+
+    @field_validator("created_at", "analyzed_at", mode="before")
+    @classmethod
+    def stored_in_utc(cls, value):
+        return as_utc(value)
 
 
 class ArticleOut(Article):

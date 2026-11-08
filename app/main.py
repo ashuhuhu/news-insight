@@ -25,6 +25,8 @@ from app.news_client import NewsClient
 from app.schemas import AnalysisList, AnalysisOut, Article, ArticleList, ArticleOut, Sentiment
 
 logging.basicConfig(level=logging.INFO)
+# httpx logs every request URL at INFO, and GNews takes its API key as a URL parameter.
+logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 
@@ -198,7 +200,7 @@ def list_analyses(
     ).all()
     total = session.scalar(select(func.count()).select_from(query.subquery()))
     counts = {"positive": 0, "neutral": 0, "negative": 0}
-    counts.update(session.execute(select(Analysis.sentiment, func.count()).group_by(Analysis.sentiment)).tuples())
+    counts.update(session.execute(select(Analysis.sentiment, func.count()).group_by(Analysis.sentiment)).all())
     return AnalysisList(items=[AnalysisOut.model_validate(r) for r in rows], total=total, counts=counts)
 
 
