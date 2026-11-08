@@ -1,1 +1,42 @@
-<!doctype html><title>News Insight</title><p>Frontend coming soon.</p>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>News Insight</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="page-header">
+    <div class="container">
+      <h1>News Insight</h1>
+      <p class="tagline">Search recent news, then let AI summarise each story and judge its sentiment.</p>
+      <nav class="tabs" role="tablist">
+        <button id="tab-search" role="tab" aria-selected="true" aria-controls="search-view">Search</button>
+        <button id="tab-library" role="tab" aria-selected="false" aria-controls="library-view">Library</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section id="search-view" role="tabpanel" aria-labelledby="tab-search">
+      <form id="search-form" class="search-form">
+        <input id="search-input" type="search" maxlength="200" placeholder="Search news, e.g. renewable energy" aria-label="Search news" autocomplete="off">
+        <button id="search-button" type="submit" class="primary">Search</button>
+      </form>
+      <div id="suggestions" class="chips" aria-label="Example searches"></div>
+      <div id="search-status" class="status" role="status" aria-live="polite"></div>
+      <div id="results-toolbar" class="toolbar" hidden></div>
+      <div id="results" class="cards"></div>
+    </section>
+
+    <section id="library-view" role="tabpanel" aria-labelledby="tab-library" hidden>
+      <div id="filters" class="chips" aria-label="Filter by sentiment"></div>
+      <div id="library-status" class="status" role="status" aria-live="polite"></div>
+      <div id="library" class="cards"></div>
+      <button id="load-more" class="secondary load-more" hidden>Load more</button>
+    </section>
+  </main>
+</body>
+</html>
