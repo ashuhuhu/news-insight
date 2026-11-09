@@ -8,23 +8,27 @@
   <script src="/static/app.js" defer></script>
 </head>
 <body>
-  <header class="page-header">
-    <div class="container">
-      <h1>News Insight</h1>
-      <p class="tagline">Search recent news, then let AI summarise each story and judge its sentiment.</p>
-      <nav class="tabs" role="tablist">
-        <button id="tab-search" role="tab" aria-selected="true" aria-controls="search-view">Search</button>
-        <button id="tab-library" role="tab" aria-selected="false" aria-controls="library-view">Library</button>
-      </nav>
-    </div>
+  <header class="hero">
+    <h1 class="wordmark">News Insight</h1>
+    <form id="search-form" class="search-bar" role="search">
+      <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      <input id="search-input" type="search" maxlength="200" placeholder="Search the news" aria-label="Search news" autocomplete="off">
+      <button id="search-button" type="submit">Search</button>
+    </form>
+    <nav class="tabs" role="tablist">
+      <button id="tab-search" class="tab" role="tab" aria-selected="true" aria-controls="search-view">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        <span><strong>Search the news</strong><small>Recent articles, summarized by AI</small></span>
+      </button>
+      <button id="tab-library" class="tab" role="tab" aria-selected="false" aria-controls="library-view">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 10l-2.5-1.5L15 12V4h5v8z"/></svg>
+        <span><strong>Your library</strong><small id="library-count">Saved analyses</small></span>
+      </button>
+    </nav>
   </header>
 
   <main class="container">
     <section id="search-view" role="tabpanel" aria-labelledby="tab-search">
-      <form id="search-form" class="search-form">
-        <input id="search-input" type="search" maxlength="200" placeholder="Search news, e.g. renewable energy" aria-label="Search news" autocomplete="off">
-        <button id="search-button" type="submit" class="primary">Search</button>
-      </form>
       <div id="suggestions" class="chips" aria-label="Example searches"></div>
       <div id="search-status" class="status" role="status" aria-live="polite"></div>
       <div id="results-toolbar" class="toolbar" hidden></div>
@@ -35,7 +39,7 @@
       <div id="filters" class="chips" aria-label="Filter by sentiment"></div>
       <div id="library-status" class="status" role="status" aria-live="polite"></div>
       <div id="library" class="cards"></div>
-      <button id="load-more" class="secondary load-more" hidden>Load more</button>
+      <button id="load-more" class="load-more" hidden>Load more</button>
     </section>
   </main>
 </body>

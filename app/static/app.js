@@ -69,6 +69,8 @@ const formatScore = (score) => (score > 0 ? "+" : "") + score.toFixed(2);
 // ---------- actions ----------
 
 async function search(rawQuery) {
+  // The search bar is shared by both tabs, so searching from the Library jumps back to results.
+  showTab("search");
   const query = rawQuery.trim();
   if (!query) {
     setStatus($("search-status"), "Type a topic to search for.");
@@ -292,7 +294,7 @@ function renderResults() {
 
 function renderLibrary() {
   const all = SENTIMENTS.reduce((sum, s) => sum + state.counts[s], 0);
-  $("tab-library").textContent = `Library (${all})`;
+  $("library-count").textContent = `${all} saved ${all === 1 ? "analysis" : "analyses"}`;
   $("filters").replaceChildren(
     ...[["", `All (${all})`], ...SENTIMENTS.map((s) => [s, `${s[0].toUpperCase()}${s.slice(1)} (${state.counts[s]})`])].map(
       ([value, label]) =>
