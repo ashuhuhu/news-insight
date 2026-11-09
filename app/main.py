@@ -40,7 +40,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="News Insight", lifespan=lifespan)
 
 
-# Dependencies. Tests replace these through app.dependency_overrides.
+# Functions rather than globals so tests can swap them via app.dependency_overrides.
 @lru_cache
 def get_news_client() -> NewsClient:
     # One shared instance so the search cache survives between requests.
@@ -91,7 +91,7 @@ async def handle_validation_error(request: Request, exc: RequestValidationError)
 
 @app.exception_handler(HTTPException)
 async def handle_http_error(request: Request, exc: HTTPException):
-    # Unknown paths and wrong methods come from the router, not our code; keep the same envelope.
+    # Router 404s and 405s would otherwise skip our error format.
     code = {404: "not_found", 405: "method_not_allowed"}.get(exc.status_code, "http_error")
     return error_response(exc.status_code, code, exc.detail, headers=exc.headers)
 

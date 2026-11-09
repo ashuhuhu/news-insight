@@ -10,7 +10,7 @@ from app.schemas import Article
 logger = logging.getLogger(__name__)
 
 GNEWS_SEARCH_URL = "https://gnews.io/api/v4/search"
-# The free GNews plan allows 100 requests a day, so identical searches are served from memory for a while.
+# The free GNews plan allows 100 requests a day, so repeat searches are served from memory.
 CACHE_SECONDS = 600
 
 

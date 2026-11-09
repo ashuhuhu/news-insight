@@ -1,4 +1,3 @@
-"""Test data builders and fakes shared by the test files."""
 import socket
 from types import SimpleNamespace
 
@@ -64,8 +63,7 @@ def article_html(paragraphs: int = 6) -> str:
 
 
 def fake_dns(default_ip: str = "93.184.216.34", **ips_by_host):
-    """Replacement for socket.getaddrinfo so tests never do real DNS lookups."""
-
+    # So tests never do real DNS lookups.
     def getaddrinfo(host, *args, **kwargs):
         return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (ips_by_host.get(host, default_ip), 0))]
 
@@ -114,13 +112,11 @@ class FakeFetcher:
 
 
 class FakeOpenAI:
-    """Stands in for the OpenAI client: records prompts and returns a predictable analysis."""
-
     def __init__(self):
         self.responses = self
         self.prompts: list[str] = []
         self.error: Exception | None = None
-        self.fail_when: str | None = None  # fail only for prompts containing this text
+        self.fail_when: str | None = None
 
     def parse(self, *, model, instructions, input, text_format):
         self.prompts.append(input)

@@ -5,7 +5,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 from app import config
 
-# pre_ping because Neon closes idle connections; without it the first request after a quiet spell fails.
+# pre_ping because Neon closes idle connections.
 engine = create_engine(config.DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(engine, expire_on_commit=False)
 

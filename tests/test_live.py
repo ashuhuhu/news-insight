@@ -1,8 +1,4 @@
-"""Checks a running app end to end with the real GNews and OpenAI APIs.
-
-Run with `pytest -m live` while the app is running. Uses 1 GNews search and at most 1 OpenAI call.
-LIVE_URL defaults to the local server; point it at the deployed app to check that instead.
-"""
+# Opt-in (`pytest -m live`) because it uses real quota: 1 GNews search, at most 1 OpenAI call.
 import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path

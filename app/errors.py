@@ -1,6 +1,5 @@
+# One exception type for every expected failure, so a single handler formats all API errors.
 class ApiError(Exception):
-    """An expected failure, returned to the client as {"error": {"code", "message"}}."""
-
     def __init__(self, status_code: int, code: str, message: str):
         super().__init__(message)
         self.status_code = status_code

@@ -5,10 +5,10 @@ const PARALLEL_ANALYSES = 3;
 
 const state = {
   query: "",
-  results: [],          // articles from the latest search; each has .analysis (or null)
-  searchToken: 0,       // bumped per search so a slow, older response can't overwrite a newer one
-  busy: new Set(),      // article URLs with an analysis request in flight
-  errors: new Map(),    // article URL -> last error message for that card
+  results: [],
+  searchToken: 0, // so a slow, older search response can't overwrite a newer one
+  busy: new Set(),
+  errors: new Map(),
   analyzingAll: false,
   progress: "",
   library: [],
@@ -39,7 +39,7 @@ async function api(path, options = {}) {
   return body;
 }
 
-// Builds DOM nodes. Text always goes in as text nodes, never as HTML, so article content can't inject markup.
+// Text goes in as text nodes, never HTML, so article content can't inject markup.
 function el(tag, props = {}, ...children) {
   const node = document.createElement(tag);
   for (const [key, value] of Object.entries(props)) {
@@ -101,7 +101,6 @@ async function search(rawQuery) {
   }
 }
 
-// Runs one request for an article, tracking its busy/error state so its card can show progress.
 async function withBusy(url, task) {
   state.busy.add(url);
   state.errors.delete(url);
@@ -118,7 +117,6 @@ async function withBusy(url, task) {
   }
 }
 
-// Puts a new or updated analysis on every card showing that article.
 function applyAnalysis(analysis) {
   for (const article of state.results) if (article.url === analysis.url) article.analysis = analysis;
   state.library = state.library.map((item) => (item.id === analysis.id ? analysis : item));
@@ -160,7 +158,7 @@ async function analyzeAll() {
   state.progress = `Analyzing 0 of ${total}…`;
 
   const worker = async () => {
-    // Stop taking new articles if the user has started a different search.
+    // A new search replaces the results, so stop working through the old ones.
     while (queue.length && token === state.searchToken) {
       const article = queue.shift();
       if (article.analysis || state.busy.has(article.url)) {

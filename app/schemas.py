@@ -23,11 +23,10 @@ def as_utc(value):
 class Article(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
-    # Plain str rather than HttpUrl: HttpUrl normalises URLs (e.g. adds a trailing slash),
-    # which would break matching against URLs already stored in the database.
+    # Plain str: HttpUrl normalises URLs (e.g. adds a trailing slash), breaking matches with stored URLs.
     url: str = Field(max_length=2000)
     title: str = Field(min_length=1, max_length=500)
-    # GNews sends a few hundred characters; the limits stop clients posting huge text to store and prompt with.
+    # Stops clients posting huge text to store and send to the AI.
     description: str | None = Field(default=None, max_length=5000)
     content: str | None = Field(default=None, max_length=5000)
     source_name: str | None = Field(default=None, max_length=200)
@@ -59,8 +58,7 @@ class Article(BaseModel):
 
 
 class AnalysisResult(BaseModel):
-    """What the AI returns. Also used as the OpenAI structured-output schema."""
-
+    # Also the OpenAI structured-output schema, so changes here change what the model returns.
     summary: str
     sentiment: Sentiment
     sentiment_score: float

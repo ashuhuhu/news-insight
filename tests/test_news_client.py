@@ -8,7 +8,6 @@ from tests.helpers import gnews_item
 
 
 def client_returning(*responses, requests=None):
-    """NewsClient whose HTTP calls return the given responses in order."""
     queue = list(responses)
 
     def handler(request: httpx.Request):

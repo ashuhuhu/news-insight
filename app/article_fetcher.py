@@ -13,12 +13,10 @@ MIN_TEXT_CHARS = 500
 
 
 def require_public_host(request: httpx.Request) -> None:
-    # The URL comes from the browser, so refuse anything that resolves to a private or internal
-    # address (SSRF). httpx runs this hook for every redirect hop too.
+    # The URL comes from the browser, so block internal addresses (SSRF), on every redirect too.
     host = request.url.host
     try:
-        # Check IP literals as written: on NAT64 networks the lookup rewrites e.g. 10.0.0.5
-        # into an IPv6 address that looks public.
+        # Check IP literals as written: NAT64 lookups turn e.g. 10.0.0.5 into a public-looking IPv6.
         addresses = [ipaddress.ip_address(host)]
     except ValueError:
         addresses = [ipaddress.ip_address(info[4][0]) for info in socket.getaddrinfo(host, None)]
@@ -41,7 +39,6 @@ _default_client = make_client()
 
 
 def fetch_full_text(url: str, http: httpx.Client = _default_client) -> str | None:
-    """Download an article and extract its main text. Returns None on any failure."""
     try:
         with http.stream("GET", url) as response:
             if response.status_code != 200 or "html" not in response.headers.get("content-type", ""):

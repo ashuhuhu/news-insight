@@ -1,132 +1,94 @@
 # News Insight
 
-Search recent news, pick the stories you care about, and get an AI summary and sentiment for each one. Every analysis is saved, so the Library builds up a sentiment history across all your searches.
+Search recent news, pick the articles you care about, and get an AI summary and sentiment for each one. Every analysis is saved and listed in a library.
 
-**Live app:** _added after deploy_. Log in with any username; the password is in the handover email. The free host sleeps when idle, so the first load can take about a minute.
+**Live app:** _added after deploy_. Any username works; the password is in the handover email. The free host sleeps when idle, so the first load can take about a minute.
 
-## How it works
+## What it does
 
-1. **Search.** Type a topic (or click an example). The server fetches the 10 newest English articles from GNews and attaches any analyses you already have for them.
-2. **Analyze.** Click **Analyze** on a card, or **Analyze all** to work through every new result (3 at a time). Nothing is analysed unless you ask, because each analysis is an AI call.
-3. **Read the article.** The server downloads the article page and extracts the main text, because GNews only gives a ~200-character preview. If the page can't be read (paywall, blocked, not HTML), it falls back to the preview, and the card says so.
-4. **AI.** `gpt-6-luna` returns a 2–3 sentence summary, a label (positive / neutral / negative), a score from −1 to +1 that must fit the label, and a one-sentence reason. Output is schema-enforced and validated before saving.
-5. **Store and show.** Results are saved in Postgres (one row per article URL) and shown on the card. A bar above the results shows the sentiment split for the search. The **Library** tab lists every analysis newest first, with sentiment filters, counts, re-analyze and delete.
+1. **Search:** fetches the 10 newest English articles for a topic from GNews. Articles you've already analysed show their saved result.
+2. **Analyze:** click **Analyze** on an article, or **Analyze all** to analyse every new result.
+3. **Read the article:** the server downloads the article page and extracts the text. If the page can't be read, it uses the GNews preview, and the card says which was used.
+4. **AI:** `gpt-6-luna` returns a 2–3 sentence summary, a sentiment label (positive / neutral / negative), a score from −1 to +1, and a one-line reason.
+5. **Store and show:** results are saved in PostgreSQL. The **Library** tab lists them newest first, with sentiment filters, re-analyze and delete.
 
-## Requirements and how they're met
+## Assumptions
 
-| Requirement (from the brief) | How |
-|---|---|
-| Search recent news through a public API | GNews search, newest first, results show title, source, time, description, image and link |
-| User selects an article and triggers analysis | Per-article **Analyze**, plus **Analyze all** for the whole topic |
-| Summary with the OpenAI API | `gpt-6-luna` via structured outputs, grounded in the full article text when it can be fetched |
-| Sentiment (positive / neutral / negative) | Label, score in the label's range, and a reason; the card shows whether it used the full article or only the preview |
-| Store results in a database | PostgreSQL (Neon), unique per URL |
-| Display all results and their analysis | Analysis on each search card; Library tab with filters, counts and paging |
-| Useful, not arbitrary | Already-analysed articles are flagged in search and never re-billed; re-analyze and delete |
-| REST API design | Resource URLs, correct verbs and status codes (201 + `Location`, 200 on repeat, 204, 404, 422), one error format |
-| Robust AI features | Out-of-range or contradictory scores, blank output and refusals are rejected; prompt injection in article text is fenced off |
-| 100 requests/day news quota | Searches run on submit only and are cached for 10 minutes |
+- Search covers English-language news only.
+- An article is identified by its URL. Analysing it again returns the saved result. Re-analyze replaces the saved result only if the new attempt succeeds.
+- Articles are analysed only when the user asks, because each analysis is a paid AI call.
+- Sentiment means the overall tone of the events reported (good, bad or mixed for those involved), not the tone towards the search term.
+- One shared password is enough; there are no user accounts.
+- The app runs as a single server process, so the 10-minute search cache can live in memory.
+- The server trusts the article details the browser sends, because GNews can't look an article up by URL.
 
-## API
+## Dependencies
 
-Interactive docs at `/docs` (password required). All endpoints except health require HTTP Basic auth.
+- Python 3.12
+- A [GNews](https://gnews.io) API key and an OpenAI API key
+- PostgreSQL in production. Without `DATABASE_URL`, the app uses a local SQLite file.
+- Python packages from `requirements.txt`:
 
-| Method | Path | Does | Success |
-|---|---|---|---|
-| GET | `/api/health` | Database check (no password, used by the host) | 200 |
-| GET | `/api/articles?q=&max=` | Search news (`max` 1–10, default 10); each article includes its stored `analysis` or `null` | 200 |
-| POST | `/api/analyses` | Analyse an article (body: an article from the search response) | 201 + `Location`, or 200 with the existing analysis |
-| POST | `/api/analyses/{id}/reanalyze` | Re-run the analysis; the stored one is replaced only if the new one succeeds | 200 |
-| GET | `/api/analyses?sentiment=&limit=&offset=` | Library, newest first, with `total` and per-sentiment `counts` | 200 |
-| GET | `/api/analyses/{id}` | One analysis | 200 |
-| DELETE | `/api/analyses/{id}` | Delete an analysis | 204 |
-
-Errors always look like `{"error": {"code": "...", "message": "..."}}`. The message is written for the user.
-
-| Status | Codes |
-|---|---|
-| 400 | `invalid_query` (GNews rejected the query) |
-| 401 | `unauthorized` |
-| 404 / 405 | `not_found`, `method_not_allowed` |
-| 422 | `invalid_request` |
-| 429 | `news_quota_exceeded` |
-| 500 | `internal_error` (details are logged, never returned) |
-| 502 | `news_unavailable`, `analysis_failed` |
-| 503 | `db_unavailable` |
-| 504 | `news_timeout`, `analysis_timeout` |
-
-## Design decisions
-
-- **Analyses are keyed by article URL.** Analysing the same article again returns the stored result (200) instead of paying for a second AI call. A unique constraint keeps this true even when "Analyze all" sends requests in parallel.
-- **Re-analyze is `POST /{id}/reanalyze`, not `PUT`.** The client doesn't send a replacement; it asks the server to redo work. The old result is kept if the new attempt fails.
-- **Full text over preview.** Summaries from a 200-character preview are thin, so the server fetches the page itself. Private and internal addresses are blocked, including through redirects, because the URL comes from the browser.
-- **PostgreSQL.** The data is one fixed-shape table; Postgres gives a unique constraint for dedupe, check constraints for valid labels, and simple SQL for filters and counts. Neon's free tier doesn't expire, unlike Render's free Postgres.
-- **Plain HTML and JavaScript, served by the same FastAPI app.** No build step and one deploy. All article and AI text is inserted as text, never HTML.
-- **A single shared password (HTTP Basic auth)** protects the API quotas without building user accounts.
+  | Package | Used for |
+  |---|---|
+  | FastAPI and Uvicorn | Web server |
+  | SQLAlchemy and psycopg | Database |
+  | httpx | GNews and article downloads |
+  | openai | AI analysis |
+  | trafilatura | Extracting article text from web pages |
+  | python-dotenv | Loading `.env` |
 
 ## Run locally
-
-Needs Python 3.12.
 
 ```bash
 python3.12 -m venv .venv
 .venv/bin/pip install -r requirements-dev.txt
-cp .env.example .env        # add your OpenAI and GNews keys
+cp .env.example .env               # fill in the values below
 .venv/bin/uvicorn app.main:app --reload
+.venv/bin/python -m pytest         # run the tests
 ```
 
-Open http://127.0.0.1:8000. Without `DATABASE_URL` the app uses a local SQLite file. With `APP_PASSWORD` empty, there is no login.
+Then open http://127.0.0.1:8000.
 
 | Variable | Purpose |
 |---|---|
 | `OPENAI_API_KEY` | OpenAI key |
-| `OPENAI_MODEL` | Defaults to `gpt-6-luna` |
+| `OPENAI_MODEL` | Model name; defaults to `gpt-6-luna` |
 | `GNEWS_API_KEY` | GNews key |
-| `APP_PASSWORD` | Shared password; empty disables the login |
-| `DATABASE_URL` | Postgres connection string (`postgres://` and `postgresql://` both work) |
+| `APP_PASSWORD` | Shared login password; leave empty for no login |
+| `DATABASE_URL` | PostgreSQL connection string |
 
-## Tests
+## API
 
-```bash
-.venv/bin/python -m pytest              # offline: every component with fakes, plus full flows through the real app code
-.venv/bin/python -m pytest --cov=app    # with coverage (about 98%)
-.venv/bin/python -m pytest -m live      # against a running app with the real APIs; 1 GNews search, at most 1 OpenAI call
-```
+Every endpoint except `/api/health` needs the password (HTTP Basic auth). Interactive docs are at `/docs`.
 
-The offline suite never touches the network: GNews, article sites and OpenAI are replaced with fakes. `LIVE_URL` points the live check at the deployed app instead of `localhost`.
+| Method | Path | Does |
+|---|---|---|
+| GET | `/api/health` | Checks the database is reachable |
+| GET | `/api/articles?q=&max=` | Searches news; each article includes its saved `analysis`, or `null` if it hasn't been analysed |
+| POST | `/api/analyses` | Analyses an article (body: an article from the search). Returns 201, or 200 if it was already analysed |
+| POST | `/api/analyses/{id}/reanalyze` | Runs the analysis again |
+| GET | `/api/analyses?sentiment=&limit=&offset=` | The library, with a count for each sentiment |
+| GET | `/api/analyses/{id}` | One analysis |
+| DELETE | `/api/analyses/{id}` | Deletes an analysis |
 
-## Project layout
+Errors are returned as `{"error": {"code": "...", "message": "..."}}`.
+
+## Code layout
 
 ```
 app/
   main.py             routes, password check, error handling
-  news_client.py      GNews search and 10-minute cache
+  news_client.py      GNews search with a 10-minute cache
   article_fetcher.py  downloads article pages and extracts the text
-  analyzer.py         prompt and OpenAI call, output validation
-  db.py               database table and session
+  analyzer.py         AI prompt and output checks
+  db.py               database table and connection
   schemas.py          request and response models
-  config.py           environment variables
-  static/             index.html, app.js, styles.css
-tests/                component tests, full-flow tests, live check
+  config.py           settings from environment variables
+  static/             the web page (index.html, app.js, styles.css)
+tests/
 ```
 
-## Deploy (Render)
+## Deploy
 
-`render.yaml` defines a free Render web service. In Render: **New → Blueprint**, pick this repo, and enter the four secret values (`OPENAI_API_KEY`, `GNEWS_API_KEY`, `DATABASE_URL`, `APP_PASSWORD`). The table is created on first start.
-
-## Known limitations
-
-- The server trusts the article details the browser sends, because GNews has no look-up-by-URL endpoint. A logged-in user could submit made-up text for a real URL.
-- The same story from several outlets has different URLs, so it is analysed and listed separately.
-- Paywalled pages fall back to the preview, and a long paywall teaser can occasionally pass as the article.
-- The search cache lives in memory, so it resets when the server restarts.
-- No migrations tool: the table is created at startup, and schema changes would need a manual `ALTER TABLE`.
-- An analysis holds a database connection while the page downloads and the AI runs (up to about a minute). That's fine at this scale; at higher load I'd split it into two short transactions.
-- The private-address check resolves DNS separately from the actual connection, so DNS rebinding isn't covered.
-
-## Next steps
-
-- Sentiment towards the searched topic, not just the article overall.
-- Group the same story across outlets.
-- Run "Analyze all" as a background job, so it continues when the tab is closed.
-- Add Alembic migrations and user accounts.
+`render.yaml` sets up a free Render web service. In Render, choose **New → Blueprint**, select this repo, and enter the secret values for `OPENAI_API_KEY`, `GNEWS_API_KEY`, `DATABASE_URL` and `APP_PASSWORD`. The database table is created on first start.

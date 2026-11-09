@@ -1,4 +1,3 @@
-"""Full-flow tests: the real app code wired together, with only the outside network faked."""
 import logging
 from functools import partial
 from types import SimpleNamespace
@@ -21,8 +20,6 @@ OPENAI_TIMEOUT = openai.APITimeoutError(request=httpx.Request("POST", "https://a
 
 
 class Network:
-    """Fake GNews and news websites."""
-
     def __init__(self):
         self.gnews_items: list = []
         self.gnews_status = 200

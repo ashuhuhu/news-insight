@@ -14,7 +14,7 @@ from tests.helpers import FakeAnalyzer, FakeFetcher, FakeNews
 
 @pytest.fixture
 def session_factory():
-    # In-memory SQLite shared by all sessions in one test; a fresh database per test.
+    # StaticPool so every session in a test sees the same in-memory database.
     engine = create_engine("sqlite://", poolclass=StaticPool, connect_args={"check_same_thread": False})
     Base.metadata.create_all(engine)
     yield sessionmaker(engine, expire_on_commit=False)
@@ -34,7 +34,6 @@ def override_session(session_factory):
 
 @pytest.fixture
 def api(session_factory, override_session, monkeypatch):
-    """The app with every outside dependency replaced by a fake. Password off unless a test sets it."""
     monkeypatch.setattr(config, "APP_PASSWORD", "")
     news, analyzer, fetcher = FakeNews(), FakeAnalyzer(), FakeFetcher()
     app.dependency_overrides[get_news_client] = lambda: news
