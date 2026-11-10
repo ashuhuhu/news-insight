@@ -2,7 +2,7 @@
 
 Search recent news, pick the articles you care about, and get an AI summary and sentiment for each one. Every analysis is saved and listed in a library.
 
-**Live app:** _added after deploy_. Any username works; the password is in the handover email. The free host sleeps when idle, so the first load can take about a minute.
+**Live app:** https://news-insight-yyhs.onrender.com. Any username works; the password is in the handover email. The free host sleeps when idle, so the first load can take about a minute.
 
 ## What it does
 
